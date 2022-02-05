@@ -1,3 +1,5 @@
+import os
+os.environ['KIVY_AUDIO'] = 'sdl2'
 import random
 
 from kivy.config import Config
@@ -34,7 +36,7 @@ class MainWidget(RelativeLayout):
     H_LINES_SPACING = .1  # % screen height
     horizontal_lines = []
 
-    SPEED_Y = .8
+    SPEED_Y = .5
     current_offset_y = 0
     current_y_loop = 0
 
@@ -66,6 +68,8 @@ class MainWidget(RelativeLayout):
     sound_music1 = None
     sound_restart = None
 
+    speed_increment = None
+    goal_speed = None
 
     def __init__(self, **kwargs):
         super(MainWidget, self).__init__(**kwargs)
@@ -111,6 +115,7 @@ class MainWidget(RelativeLayout):
         self.pre_fill_tiles_coordinates()
         self.generate_tiles_coordinates()
         self.state_game_over = False
+        self.SPEED_Y = .5
 
 
     def is_desktop(self):
@@ -314,6 +319,9 @@ class MainWidget(RelativeLayout):
             speed_x = self.current_speed_x * self.width / 100
             self.current_offset_x += speed_x * time_factor
 
+            if self.current_y_loop % 50 == 0 and self.current_y_loop > 0:
+                self.speed_increase()
+
         if not self.check_ship_collision() and not self.state_game_over:
             self.state_game_over = True
             self.menu_title = "G  A  M  E    O  V  E  R"
@@ -339,7 +347,9 @@ class MainWidget(RelativeLayout):
         self.state_game_has_started = True
         self.menu_widget.opacity = 0
 
-
+    def speed_increase(self):
+        self.SPEED_Y += .01
+        print("Increase")
 
 
 class GalaxyApp(App):
