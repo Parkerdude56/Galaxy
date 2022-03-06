@@ -194,7 +194,7 @@ class MainWidget(RelativeLayout):
         self.generate_tiles_coordinates()
         self.state_game_over = False
         self.SPEED_Y = .5
-
+        print('reset')
         self._keyboard = Window.request_keyboard(self.keyboard_closed, self)
         self._keyboard.bind(on_key_down=self.on_keyboard_down)
         self._keyboard.bind(on_key_up=self.on_keyboard_up)
@@ -420,6 +420,7 @@ class MainWidget(RelativeLayout):
                 self.win = True
                 self.winner = "You made it to the top 5"
                 self.name_textinput.opacity = 1
+                self.name_textinput.focus = True
             else:
                 self.winner = "L O S E R"
 
