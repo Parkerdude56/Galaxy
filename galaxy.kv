@@ -2,13 +2,17 @@
 
 MainWidget:
 
+<SingleLineTextInput@TextInput>:
+    multiline: False
 
 <MainWidget>:
+    name_textinput: name
     canvas.before:
         Rectangle:
             size: self.size
             source: 'images/bg1.jpg'
     menu_widget: menu_widget
+
     perspective_point_x: self.width/2
     perspective_point_y: self.height*0.75
     MenuWidget:
@@ -19,3 +23,11 @@ MainWidget:
         font_name: 'fonts/Eurostile.ttf'
         size_hint: .18, .18
         pos_hint: {"x": 0, "top": 1}
+    SingleLineTextInput:
+        id: name
+        hint_text: "Type high score name and press Enter"
+        pos_hint: { "center_x": .5, "center_y": .45}
+        size_hint: .35, .1
+        opacity: 0
+        on_text_validate: root.insertScore()
+

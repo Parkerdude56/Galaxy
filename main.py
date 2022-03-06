@@ -1,4 +1,5 @@
 import os
+import os, sys
 os.environ['KIVY_AUDIO'] = 'sdl2'
 import random
 
@@ -14,20 +15,28 @@ from kivy import platform
 from kivy.core.window import Window
 from kivy.app import App
 from kivy.graphics import Color, Line, Quad, Triangle
-from kivy.properties import NumericProperty, Clock, ObjectProperty, StringProperty
+from kivy.properties import NumericProperty, Clock, ObjectProperty, StringProperty, ListProperty
 from kivy.uix.widget import Widget
 
+from kivy.uix.textinput import TextInput
+
+from kivy.uix.recycleview import RecycleView    #add widget for scores
+
 Builder.load_file("menu.kv")
+
+scores = []
+fullpath = os.path.join(os.path.dirname(sys.argv[0]), 'scores.txt')
 
 
 class MainWidget(RelativeLayout):
     from transforms import transform, transform_perspective, transform_2D
     from user_actions import on_keyboard_up, on_keyboard_down, on_touch_down, on_touch_up, keyboard_closed
 
+    win = False
     menu_widget = ObjectProperty()
+    name_textinput = ObjectProperty()
     perspective_point_x = NumericProperty(0)
     perspective_point_y = NumericProperty(0)
-
     V_NB_LINES = 8
     V_LINES_SPACING = .4  # % screen width
     vertical_lines = []
@@ -57,9 +66,12 @@ class MainWidget(RelativeLayout):
     state_game_over = False
     state_game_has_started = False
 
+    winner = StringProperty("W E L C O M E  T O")
     menu_title = StringProperty("G   A   L   A   X   Y")
+    top_ten = StringProperty("1. ")
     menu_button_title = StringProperty("START")
     score_txt = StringProperty()
+    scoreList = ListProperty()
 
     sound_begin = None
     sound_galaxy = None
@@ -71,6 +83,71 @@ class MainWidget(RelativeLayout):
     speed_increment = None
     goal_speed = None
 
+    def refreshScores(self):
+        self.sortScores(scores)
+        for i in range(5):
+            self.scoreList[i] = self.getScore(i+1)
+            #updates top5 labels
+        self.setScores()
+
+    def initScores(self):
+        self.sortScores(scores)
+        self.scoreList.clear()
+        for i in range(5):
+            self.scoreList.append(self.getScore(i+1))
+
+    def getScores(self):
+        file = open(fullpath, 'r') #opens file (read)
+        scores.clear()
+        for line in file:
+            lines = line.split(',') # take out comma
+            scores.append(lines)
+        file.close()
+
+    def setScores(self): # writes in scores.txt the scores
+        f = open(fullpath, 'w')
+        for player in scores:
+            s = ",".join(map(str, player))
+            f.write(s)
+        f.close()
+
+    def checkScore(self, score): # checks if >= top 5, need score
+        self.getScores()
+        self.sortScores(scores)
+        for i in range (len(scores)):
+            if score >= int(scores[i][1]):
+                return True
+                break
+        return False
+
+    def insertScore(self): # puts score in right place if winner
+        if self.win:
+            score = self.current_y_loop
+            player = self.name_textinput.text
+            self.winner = 'Thank You ' + player
+            for i in range(len(scores)):
+                if score >= int(scores[i][1]):
+                    ss = str(score) + "\n"
+                    scores.insert(i, [player, ss])
+                    scores.pop()
+                    break
+            self.refreshScores()
+
+    def sortScores(self, scores):
+        scores.sort(key=lambda row: float(row[1]), reverse=True)
+        return scores
+
+    def loadScores(self):
+        self.getScores()
+        self.sortScores(scores)
+        self.initScores()
+
+    def getScore(self, i):
+        return str(i) + ' - ' + str(scores[i-1][0]) + ': ' + str(scores[i-1][1])
+
+
+
+
     def __init__(self, **kwargs):
         super(MainWidget, self).__init__(**kwargs)
         # print("INIT W: " + str(self.width) + "  H: " + str(self.height) )
@@ -80,6 +157,7 @@ class MainWidget(RelativeLayout):
         self.init_tiles()
         self.init_ship()
         self.reset_game()
+        self.loadScores()
 
         if self.is_desktop():
             self._keyboard = Window.request_keyboard(self.keyboard_closed, self)
@@ -116,6 +194,11 @@ class MainWidget(RelativeLayout):
         self.generate_tiles_coordinates()
         self.state_game_over = False
         self.SPEED_Y = .5
+
+        self._keyboard = Window.request_keyboard(self.keyboard_closed, self)
+        self._keyboard.bind(on_key_down=self.on_keyboard_down)
+        self._keyboard.bind(on_key_up=self.on_keyboard_up)
+        self.win = False
 
 
     def is_desktop(self):
@@ -315,12 +398,13 @@ class MainWidget(RelativeLayout):
                 self.score_txt = "SCORE: " + str(self.current_y_loop)
                 self.generate_tiles_coordinates()
                 print("loop: " + str(self.current_y_loop))
+                if self.current_y_loop % 50 == 0 and self.current_y_loop > 0:
+                    self.speed_increase()
 
             speed_x = self.current_speed_x * self.width / 100
             self.current_offset_x += speed_x * time_factor
 
-            if self.current_y_loop % 50 == 0 and self.current_y_loop > 0:
-                self.speed_increase()
+
 
         if not self.check_ship_collision() and not self.state_game_over:
             self.state_game_over = True
@@ -331,6 +415,13 @@ class MainWidget(RelativeLayout):
             self.sound_gameover_impact.play()
             Clock.schedule_once(self.play_game_over_voice_sound, 2.5)
             print("GAME OVER (dummy)")
+
+            if self.checkScore(self.current_y_loop) == True:
+                self.win = True
+                self.winner = "You made it to the top 5"
+                self.name_textinput.opacity = 1
+            else:
+                self.winner = "L O S E R"
 
     def play_game_over_voice_sound(self, dt):
         if self.state_game_over:
@@ -347,8 +438,10 @@ class MainWidget(RelativeLayout):
         self.state_game_has_started = True
         self.menu_widget.opacity = 0
 
+        self.name_textinput.opacity = 0
+
     def speed_increase(self):
-        self.SPEED_Y += .01
+        self.SPEED_Y += .1
         print("Increase")
 
 
