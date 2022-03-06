@@ -20,7 +20,9 @@ from kivy.uix.widget import Widget
 
 from kivy.uix.textinput import TextInput
 
-# Working version - 3/6/22
+# Working version for Pi - 3/6/22
+# If problems running on Pi - install xclip and xsel in terminal:
+# $ sudo apt-get install xclip xsel
 
 Builder.load_file("menu.kv")
 
