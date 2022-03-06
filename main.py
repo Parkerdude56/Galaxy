@@ -20,7 +20,7 @@ from kivy.uix.widget import Widget
 
 from kivy.uix.textinput import TextInput
 
-from kivy.uix.recycleview import RecycleView    #add widget for scores
+# Working version - 3/6/22
 
 Builder.load_file("menu.kv")
 
